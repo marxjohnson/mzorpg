@@ -1,8 +1,8 @@
 #!/bin/bash
 
-VITALITY=$((25 + $RANDOM % 75))
-AGILITY=$((25 + $RANDOM % 75))
-DEXTERITY=$((50 + $RANDOM % 50))
+VITALITY=$((25 + RANDOM % 75))
+AGILITY=$((25 + RANDOM % 75))
+DEXTERITY=$((50 + RANDOM % 50))
 SCORE=0
 
 echo "Your statistics:"
@@ -13,9 +13,9 @@ echo ""
 sleep 1
 while true; do
     echo "Finding a monster..."
-    MONSTER_VITALITY=$((5 + $RANDOM % 10))
-    MONSTER_AGILITY=$((5 + $RANDOM % 20))
-    MONSTER_DEXTERITY=$((25 + $RANDOM % 50))
+    MONSTER_VITALITY=$((5 + RANDOM % 10))
+    MONSTER_AGILITY=$((5 + RANDOM % 20))
+    MONSTER_DEXTERITY=$((25 + RANDOM % 50))
     sleep 1
     echo "You found a monster! Here are its statistics:"
     echo "Vitality: $MONSTER_VITALITY"
@@ -28,7 +28,7 @@ while true; do
     while [ $VITALITY -gt 0 ] && [ $MONSTER_VITALITY -gt 0 ]; do
 	if [ $TURN -eq 1 ]; then
 	    echo "You attack the monster"
-	    HIT=$(($RANDOM % 100))
+	    HIT=$((RANDOM % 100))
 	    if [ $HIT -gt $DEXTERITY ]; then
 		echo "You hit it"
 		MONSTER_VITALITY=$((MONSTER_VITALITY-1))
@@ -39,7 +39,7 @@ while true; do
 	    TURN=2
 	else
 	    echo "The monster attacks you"
-	    HIT=$(($RANDOM % 100))
+	    HIT=$((RANDOM % 100))
 	    if [ $HIT -gt $DEXTERITY ]; then
 		echo "It hits you"
 		VITALITY=$((VITALITY-1))
