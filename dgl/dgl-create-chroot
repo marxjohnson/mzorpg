@@ -9,6 +9,7 @@
 #
 
 
+SCRIPTDIR=$(dirname $(readlink -f $0))
 # Same as chroot_path in dgl config file
 CHROOT="/opt/mzorpg/"
 # the user & group from dgamelaunch config file.
@@ -16,7 +17,7 @@ USRGRP="games:games"
 # COMPRESS from include/config.h; the compression binary to copy. leave blank to skip.
 #COMPRESSBIN="/bin/gzip"
 # nethack binary to copy into chroot (leave blank to skip)
-NETHACKBIN="/home/ubuntu/mzorpg.sh"
+NETHACKBIN="$SCRIPTDIR/../mzorpg.sh"
 # fixed data to copy (leave blank to skip)
 #NH_PLAYGROUND_FIXED="/home/paxed/hacking/coding/nethacksource/nethack-3.4.3-nao/mzorpg/"
 # HACKDIR from include/config.h; aka nethack subdir inside chroot
@@ -128,7 +129,7 @@ cd ..
 
 
 cd etc
-cp "$CURDIR/examples/dgamelaunch.conf" .
+cp "$SCRIPTDIR/dgamelaunch.conf" .
 echo "Edit $CHROOT/etc/dgamelaunch.conf to suit your needs."
 [ -f /etc/localtime ] && cp /etc/localtime .
 cd ..
