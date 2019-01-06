@@ -77,6 +77,7 @@ DEXTERITY=$((50 + RANDOM % 50))
 SCORE=0
 
 STATS="
+Welcome, $USER!
 Your statistics:
 Vitality: $VITALITY
 Agility: $AGILITY
