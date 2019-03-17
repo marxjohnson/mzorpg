@@ -141,8 +141,8 @@ cp "$CURDIR/virus" .
 echo "Copied text editors 'ee' and 'virus' to chroot."
 cp "/bin/bash" .
 cp "/bin/sleep" .
-cp "/usr/bin/dialog" .
 cp "/usr/bin/seq" .
+cp "/usr/bin/tput" .
 cd ..
 
 
