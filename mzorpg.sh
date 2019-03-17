@@ -1,9 +1,10 @@
 #!/bin/bash
 
+. msg_window.sh
 SPEED=0.2
 
 function message {
-    dialog --colors --no-collapse --infobox "$1" 30 60
+    update_window "$1"
 }
 
 function fight_status {
@@ -17,9 +18,9 @@ function fight_status {
     local STATUS="
 $MESSAGE
 
-Your vitality:    $PLAYER_BAR $PLAYER_VITALITY
+Your vitality:    $PLAYER_BAR$WINDOW_TEXT $PLAYER_VITALITY
 
-Monster vitality: $MONSTER_BAR $MONSTER_VITALITY
+Monster vitality: $MONSTER_BAR$WINDOW_TEXT $MONSTER_VITALITY
 "
     message "$STATUS"
 
@@ -38,21 +39,21 @@ function vitality_bar {
     FULL=$((PERCENTAGE / 3 ))
     PARTIAL=$((PERCENTAGE % 3 ))
     EMPTY=$(($LENGTH - $FULL - 1))
-    BAR="\Zb\Z2"
+    BAR="${BOLD}${FG_GREEN}"
 
     for i in `seq 1 $FULL`
     do
         BAR=$BAR"█"
     done
 
-    BAR=$BAR"\ZB"
+    BAR="${BAR}${RESET}"
 
     if [ $PARTIAL -eq 2 ]
     then
-        BAR=$BAR"█"
+        BAR=${BAR}${FG_GREEN}"█"
     elif [ $PARTIAL -eq 1 ]
     then
-        BAR=$BAR"\Z1█"
+        BAR=${BAR}${FG_RED}"█"
     elif [ $FULL -lt $LENGTH ]
     then
         EMPTY=$((EMPTY+1))
@@ -60,15 +61,19 @@ function vitality_bar {
 
     if [ $EMPTY -gt 0 ]
     then
-        BAR=$BAR"\Zb\Z1"
+        BAR=${BAR}${BOLD}${FG_RED}
         for i in `seq 1 $EMPTY`
         do
             BAR=$BAR"█"
         done
     fi
-    BAR=$BAR"\Zn"
+    BAR=${BAR}${RESET}
 
     echo $BAR
+}
+
+function update_status {
+    status_bar "Score: ${SCORE} | Vitality ${VITALITY} | Agility ${AGILITY} | Dexterity ${DEXTERITY}"
 }
 
 VITALITY=$((25 + RANDOM % 75))
@@ -84,7 +89,8 @@ Agility: $AGILITY
 Dexterity: $DEXTERITY
 "
 
-dialog --msgbox "$STATS" 30 60
+message "$STATS"
+update_status
 sleep 1
 CURRENT_VITALITY=$VITALITY
 while true; do
@@ -140,6 +146,7 @@ You won!
 Your remaining vitality is $CURRENT_VITALITY out of $VITALITY
 You current score is $SCORE"
 	message "$WIN"
+	update_status
 	sleep 0.5
     else
 	LOSE="
