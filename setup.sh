@@ -6,8 +6,6 @@ if [ ! -d "dgamelaunch" ]
 fi
 # Dgamelaunch deps
 sudo apt install -y build-essential automake autogen autoconf make libncurses5 libncurses5-dev bison flex libsqlite3-0 libsqlite3-dev libncursesw5 libncursesw5-dev sqlite3 telnetd xinetd
-# Mzorpg deps
-sudo apt install dialog
 
 cd dgamelaunch
 ./autogen.sh "--with-config-file=/opt/mzorpg/etc/dgamelaunch.conf" --enable-shmem --enable-sqlite
