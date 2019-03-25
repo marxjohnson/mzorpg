@@ -169,23 +169,29 @@ Monster vitality: $MONSTER_BAR$WINDOW_TEXT $MONSTER_VITALITY
     message "$STATUS"
 }
 
+function wait_for_ready {
+    sleep 0.001
+}
+
 function send_fight_status {
     local MONSTER_VITALITY=$1
     local TOTAL_MONSTER_VITALITY=$2
     local PLAYER_VITALITY=$3
     local TOTAL_PLAYER_VITALITY=$4
     local MESSAGE=$5
-    local $PIPE=$6
+    local PIPE=$6
     local PLAYER_BAR=$(vitality_bar $PLAYER_VITALITY $TOTAL_PLAYER_VITALITY)
     local MONSTER_BAR=$(vitality_bar $MONSTER_VITALITY $TOTAL_MONSTER_VITALITY)
-    local STATUS="
-$MESSAGE
-
-Your vitality:    $PLAYER_BAR$WINDOW_TEXT $PLAYER_VITALITY
-
-Monster vitality: $MONSTER_BAR$WINDOW_TEXT $MONSTER_VITALITY
-"
-    echo "$STATUS"$EOM >$PIPE
+    echo "${MESSAGE}" >$PIPE
+    wait_for_ready
+    echo "" >$PIPE
+    wait_for_ready
+    echo "Your vitality:    $PLAYER_BAR$WINDOW_TEXT $PLAYER_VITALITY" >$PIPE
+    wait_for_ready
+    echo "Monster vitality: $MONSTER_BAR$WINDOW_TEXT $MONSTER_VITALITY" >$PIPE
+    wait_for_ready
+    echo $EOM >$PIPE
+    wait_for_ready
 }
 
 function vitality_bar {
@@ -313,20 +319,20 @@ EOF
 function pick_a_fight {
     local BATTLE_ID
     local BATTLE
-    local DEFENDER_ID
     local ID
     ID=$1
     BATTLE_ID=`find_battle_offer $LEVEL`
     if [ -z $BATTLE_ID ]
     then
         BATTLE_ID=`create_battle_offer $ID`
-	while [ -z $DEFENDER_ID ]
+	while [ -z $BATTLE ]
 	do
             sleep 5
             BATTLE=`check_battle_offer $BATTLE_ID`
 	done
     else
 	mkfifo "/tmp/mzorpg${BATTLE_ID}.battle"
+	mkfifo "/tmp/mzorpg${BATTLE_ID}.timing"
         accept_battle_offer $BATTLE_ID $ID
         BATTLE=`check_battle_offer $BATTLE_ID`
     fi
@@ -338,8 +344,7 @@ then
     create_db
 fi
 
-EOM="
-EOM"
+EOM="EOM"
 
 CHARACTER=`load_character "$NAME"`
 
@@ -397,23 +402,27 @@ while true; do
                 read LINE <$PIPE
             done
             IFS='|' read -r -a DEFENDER <<< $LINE
-            DEFENDER_NAME=${DEFENDER[1]}
-            DEFENDER_VITALITY=${DEFENDER[2]}
-            DEFENDER_DEXTERITY=${DEFENDER[3]}
+            DEFENDER_NAME=${DEFENDER[0]}
+            DEFENDER_VITALITY=${DEFENDER[1]}
+            DEFENDER_DEXTERITY=${DEFENDER[2]}
             LOCAL_MESSAGE="
 You encountered ${DEFENDER_NAME}! Here are their statistics:
 Vitality: $DEFENDER_VITALITY
 Dexterity: $DEFENDER_DEXTERITY"
-            REMOTE_MESSAGE="
-You encountered ${NAME}! Here are their statistics:
-Vitality: $VITALITY
-Dexterity: $DEXTERITY"
             message "$LOCAL_MESSAGE"
-            echo "${REMOTE_MESSAGE}${EOM}" >$PIPE
-            sleep 1
+            echo "You encountered ${NAME}! Here are their statistics:" >$PIPE
+	    wait_for_ready
+	    echo "Vitality: $VITALITY" >$PIPE
+	    wait_for_ready
+            echo "Dexterity: $DEXTERITY" >$PIPE
+	    wait_for_ready
+            echo "${EOM}" >$PIPE
+            sleep 5
             LOCAL_MESSAGE='FIGHT!!!'
             message "$LOCAL_MESSAGE"
-            echo "${LOCAL_MESSAGE}${EOM}" >$PIPE
+            echo "${LOCAL_MESSAGE}" >$PIPE
+	    wait_for_ready
+            echo "${EOM}" >$PIPE
             sleep 1
 
             TURN=1
@@ -476,12 +485,11 @@ Your score was $SCORE"
             echo "${NAME}|${VITALITY}|${DEXTERITY}" >$PIPE
             while read LINE <$PIPE
             do
-                if [ "$LINE" == "WIN" || "$LINE" == "LOSE" ]; 
+                if [[ "$LINE" == "WIN" || "$LINE" == "LOSE" ]] 
                 then
                     break
-                fi
-                if [ "$LINE" == "EOM" ]
-                then
+	        elif [ "$LINE" == "$EOM" ]
+		then
                     message "${MESSAGE}"
                     MESSAGE=""
                 else
@@ -489,6 +497,7 @@ Your score was $SCORE"
 ${LINE}"
                 fi
             done
+	    echo "FINAL LINE: $LINE"
 
             if [ "$LINE" == "WIN" ]
             then
