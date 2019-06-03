@@ -162,9 +162,9 @@ function fight_status {
     local STATUS="
 $MESSAGE
 
-Your vitality:    $PLAYER_BAR$WINDOW_TEXT $PLAYER_VITALITY
+Your vitality:    $PLAYER_BAR$WINDOW_TEXT $PLAYER_VITALITY 
 
-Monster vitality: $MONSTER_BAR$WINDOW_TEXT $MONSTER_VITALITY
+Monster vitality: $MONSTER_BAR$WINDOW_TEXT $MONSTER_VITALITY 
 "
     message "$STATUS"
 }
