@@ -339,6 +339,12 @@ function pick_a_fight {
     echo "${BATTLE}"
 }
 
+function roll_stats {
+    VITALITY=$((25 + RANDOM % 75))
+    AGILITY=$((25 + RANDOM % 75))
+    DEXTERITY=$((50 + RANDOM % 50))
+}
+
 if [ ! -f "$DB" ]
 then
     create_db
@@ -348,13 +354,38 @@ EOM="EOM"
 
 CHARACTER=`load_character "$NAME"`
 
+show_window
+
 if [ -z "${CHARACTER}" ]
 then
     LEVEL=1
     SCORE=0
-    VITALITY=$((25 + RANDOM % 75))
-    AGILITY=$((25 + RANDOM % 75))
-    DEXTERITY=$((50 + RANDOM % 50))
+    VITALITY=0
+    AGILITY=0
+    DEXTERITY=0
+    ACCEPTED=0
+    while [ "$ACCEPTED" -eq 0 ]
+    do
+        roll_stats
+        STATS="
+Welcome, $NAME!
+
+Your statistics:
+Vitality: $VITALITY
+Agility: $AGILITY
+Dexterity: $DEXTERITY
+    
+Press y to accept, or r to re-roll
+"
+        message "$STATS"
+        read -n 1 -s KEY
+        if [[ "$KEY" == "y" ]]
+        then
+            ACCEPTED=1
+        fi
+
+    done
+
     ID=`register_character "$NAME" 1 0 $VITALITY $AGILITY $DEXTERITY`
 else
     IFS='|' read -r -a CHARACTER <<< "$CHARACTER"
@@ -364,20 +395,18 @@ else
     VITALITY=${CHARACTER[4]}
     AGILITY=${CHARACTER[5]}
     DEXTERITY=${CHARACTER[6]}
+    STATS="
+    Welcome back, $NAME!
+    ID: $ID
+    Your statistics:
+    Vitality: $VITALITY
+    Agility: $AGILITY
+    Dexterity: $DEXTERITY
+"
+    message "$STATS"
 fi
 
-show_window
 
-STATS="
-Welcome, $NAME!
-ID: $ID
-Your statistics:
-Vitality: $VITALITY
-Agility: $AGILITY
-Dexterity: $DEXTERITY
-"
-
-message "$STATS"
 update_status
 sleep 1
 CURRENT_VITALITY=$VITALITY
@@ -584,4 +613,3 @@ Your score was $SCORE"
         fi
     fi
 done
-
