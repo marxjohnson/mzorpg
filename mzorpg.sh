@@ -345,6 +345,17 @@ function roll_stats {
     DEXTERITY=$((50 + RANDOM % 50))
 }
 
+function level_threshold {
+    local TRIANGLE=$LEVEL
+    local THRESHOLD
+    while [ $TRIANGLE -gt 0 ]
+    do
+        THRESHOLD=$((THRESHOLD+TRIANGLE))
+	TRIANGLE=$((TRIANGLE-1))
+    done
+    echo $THRESHOLD
+}
+
 if [ ! -f "$DB" ]
 then
     create_db
@@ -411,7 +422,7 @@ update_status
 sleep 1
 CURRENT_VITALITY=$VITALITY
 while true; do
-    if [[ $SCORE > 0 && $((SCORE % 10)) == 0 ]]
+    if [ $SCORE -eq $(level_threshold) ]
     then
         CURRENT_VITALITY=$VITALITY
         message "You drink a potion of healing."
