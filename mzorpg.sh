@@ -244,12 +244,29 @@ function update_status {
     status_bar "Level: ${LEVEL} | Score: ${SCORE} | Vitality ${VITALITY} | Agility ${AGILITY} | Dexterity ${DEXTERITY}"
 }
 
+function query {
+    local RETURN=1
+    local TIMEOUT=10
+    while [ $RETURN -gt 0 ]
+    do
+        sqlite3 "$DB" $1 2>/dev/null
+	RETURN=$?
+	TIMEOUT=$((TIMEOUT - 1))
+	if [ $TIMEOUT -eq 0 ]
+	then
+	    echo "Could not run query $1"
+	    exit 1
+	fi
+    done
+}
+
 function create_db {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
          CREATE TABLE battles (
              id INTEGER PRIMARY KEY,
              agressor_id INTEGER NOT NULL,
-	     defender_id INTEGER
+	     defender_id INTEGER,
+             confirmed INTEGER
          );
 	 CREATE TABLE characters (
              id INTEGER PRIMARY KEY,
@@ -264,32 +281,32 @@ EOF
 }
 
 function register_character {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
 	INSERT INTO characters (name, level, score, vitality, agility, dexterity) VALUES ('${1//\'/\'\'}', $2, $3, $4, $5, $6);
         SELECT last_insert_rowid();
 EOF
 }
 
 function load_character {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
 	SELECT * FROM characters WHERE name='${1//\'/\'\'}'
 EOF
 }
 
 function save_score {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
 	UPDATE characters SET score=$1 WHERE id = $2
 EOF
 }
 
 function save_level {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
 	UPDATE characters SET level=$1 WHERE id = $2
 EOF
 }
 
 function find_battle_offer {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
         SELECT b.id
         FROM battles b
         JOIN characters c ON c.id = b.agressor_id
@@ -298,28 +315,51 @@ EOF
 }
 
 function create_battle_offer {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
 	INSERT INTO battles (agressor_id) VALUES ($1);
         SELECT last_insert_rowid();
 EOF
 }
 
 function accept_battle_offer {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
 	UPDATE battles SET defender_id = $2 WHERE id = $1;
 EOF
 }
 
 function check_battle_offer {
-    sqlite3 "$DB" <<EOF
+    query <<EOF
 	SELECT * FROM battles WHERE defender_id IS NOT NULL AND id = $1
 EOF
 }
 
+function confirm_battle_offer {
+    query <<EOF
+	UPDATE battles SET confirmed = 1 WHERE id = $1;
+EOF
+}
+
+function check_battle_offer_confirmed {
+    query <<EOF
+	SELECT * FROM battles WHERE defender_id = $2 AND id = $1 AND confirmed = 1
+EOF
+}
+
+function clear_battle {
+    local ID=$1
+    query <<EOF
+	DELETE FROM battles WHERE ID = $ID
+EOF
+    rm "/tmp/mzorpg${ID}.battle"
+}
+
+
 function pick_a_fight {
     local BATTLE_ID
     local BATTLE
+    local CONFIRMED
     local ID
+    local TIMEOUT
     ID=$1
     BATTLE_ID=`find_battle_offer $LEVEL`
     if [ -z $BATTLE_ID ]
@@ -330,19 +370,37 @@ function pick_a_fight {
             sleep 5
             BATTLE=`check_battle_offer $BATTLE_ID`
 	done
+	confirm_battle_offer $BATTLE_ID
     else
-	mkfifo "/tmp/mzorpg${BATTLE_ID}.battle"
-	mkfifo "/tmp/mzorpg${BATTLE_ID}.timing"
         accept_battle_offer $BATTLE_ID $ID
-        BATTLE=`check_battle_offer $BATTLE_ID`
+	TIMEOUT=5
+	while [[ $TIMEOUT != 0 ]]
+	do
+            sleep 5
+            CONFIRMED=`check_battle_offer_confirmed $BATTLE_ID $ID`
+	    if [ ! -z $CONFIRMED ]
+            then
+	        mkfifo "/tmp/mzorpg${BATTLE_ID}.battle"
+                BATTLE=`check_battle_offer $BATTLE_ID`
+		break
+            fi
+	    TIMEOUT=$((TIMEOUT - 1))
+	done
+        if [ -z $BATTLE ]
+        then
+	    # The battle was never confirmed, try again.
+	    BATTLE=`pick_a_fight $ID`
+	fi
     fi
     echo "${BATTLE}"
 }
 
 function roll_stats {
-    VITALITY=$((25 + RANDOM % 75))
-    AGILITY=$((25 + RANDOM % 75))
-    DEXTERITY=$((50 + RANDOM % 50))
+    local VIT_BONUS=$((RANDOM % 25))
+    local DEX_BONUS=$((25 - VIT_BONUS))
+    VITALITY=$((25 + VIT_BONUS))
+    AGILITY=25
+    DEXTERITY=$((25 + DEX_BONUS))
 }
 
 function level_threshold {
@@ -436,6 +494,7 @@ while true; do
         PIPE="/tmp/mzorpg${BATTLE_ID}.battle"
         if [ $AGRESSOR == $ID ]
         then
+	    sleep 5
             # Wait for defender's stats.
             while [ -z $LINE ]
             do
@@ -472,7 +531,7 @@ Dexterity: $DEFENDER_DEXTERITY"
                     fight_status $CURRENT_DEFENDER_VITALITY $DEFENDER_VITALITY $CURRENT_VITALITY $VITALITY "You attack ${DEFENDER_NAME}"
                     send_fight_status $CURRENT_VITALITY $VITALITY $CURRENT_DEFENDER_VITALITY $DEFENDER_VITALITY "${NAME} attacks you" $PIPE
                     sleep $SPEED
-                    HIT=$((RANDOM % 100))
+                    HIT=$((RANDOM % 50))
                     if [ $HIT -gt $DEXTERITY ]; then
                         CURRENT_DEFENDER_VITALITY=$((CURRENT_DEFENDER_VITALITY-1))
                         fight_status $CURRENT_DEFENDER_VITALITY $DEFENDER_VITALITY $CURRENT_VITALITY $VITALITY "You hit them"
@@ -487,7 +546,7 @@ Dexterity: $DEFENDER_DEXTERITY"
                     fight_status $CURRENT_DEFENDER_VITALITY $DEFENDER_VITALITY $CURRENT_VITALITY $VITALITY "${DEFENDER_NAME} attacks you"
                     send_fight_status $CURRENT_VITALITY $VITALITY $CURRENT_DEFENDER_VITALITY $DEFENDER_VITALITY "You attack ${NAME}" $PIPE
                     sleep $SPEED
-                    HIT=$((RANDOM % 100))
+                    HIT=$((RANDOM % 50))
                     if [ $HIT -gt $DEXTERITY ]; then
                         fight_status $CURRENT_DEFENDER_VITALITY $DEFENDER_VITALITY $CURRENT_VITALITY $VITALITY "They hit you"
                         send_fight_status $CURRENT_VITALITY $VITALITY $CURRENT_DEFENDER_VITALITY $DEFENDER_VITALITY "You hit them" $PIPE
@@ -511,9 +570,10 @@ You drink a potion of healing"
                 save_level $LEVEL $ID
                 CURRENT_VITALITY=$VITALITY
                 update_status
+		clear_battle $BATTLE_ID
                 sleep 2
-                else
-            LOSE="
+            else
+                LOSE="
 You died, sorry!
 Your score was $SCORE"
                 message "$LOSE"
@@ -523,21 +583,26 @@ Your score was $SCORE"
         else
             # Send stats and wait for futher messages.
             echo "${NAME}|${VITALITY}|${DEXTERITY}" >$PIPE
-            while read LINE <$PIPE
+            while true
             do
-                if [[ "$LINE" == "WIN" || "$LINE" == "LOSE" ]] 
-                then
-                    break
-	        elif [ "$LINE" == "$EOM" ]
-		then
-                    message "${MESSAGE}"
-                    MESSAGE=""
-                else
-                    MESSAGE="${MESSAGE}
+		read LINE <$PIPE
+		if [ ! -z $LINE ]
+	        then
+		    echo $LINE >> "${NAME}.log"
+                    if [[ "$LINE" == "WIN" || "$LINE" == "LOSE" ]] 
+                    then
+		        echo "FINAL LINE, BREAKING: $LINE" >> "${NAME}.log"
+                        break
+	            elif [ "$LINE" == "$EOM" ]
+		    then
+                        message "${MESSAGE}"
+                        MESSAGE=""
+                    else
+                        MESSAGE="${MESSAGE}
 ${LINE}"
+                    fi
                 fi
             done
-	    echo "FINAL LINE: $LINE"
 
             if [ "$LINE" == "WIN" ]
             then
@@ -550,6 +615,7 @@ You drink a potion of healing"
                 save_level $LEVEL $ID
                 CURRENT_VITALITY=$VITALITY
                 update_status
+		clear_battle $BATTLE_ID
                 sleep 2
             else
                 LOSE="
@@ -581,8 +647,8 @@ Dexterity: $MONSTER_DEXTERITY"
             if [ $TURN -eq 1 ]; then
                 fight_status $CURRENT_MONSTER_VITALITY $MONSTER_VITALITY $CURRENT_VITALITY $VITALITY "You attack the monster"
                 sleep $SPEED
-                HIT=$((RANDOM % 100))
-                if [ $HIT -gt $DEXTERITY ]; then
+                HIT=$((RANDOM % 35))
+                if [ $HIT -lt $MONSTER_DEXTERITY ]; then
                     CURRENT_MONSTER_VITALITY=$((CURRENT_MONSTER_VITALITY-1))
                     fight_status $CURRENT_MONSTER_VITALITY $MONSTER_VITALITY $CURRENT_VITALITY $VITALITY "You hit it"
                 else
@@ -593,7 +659,7 @@ Dexterity: $MONSTER_DEXTERITY"
             else
                 fight_status $CURRENT_MONSTER_VITALITY $MONSTER_VITALITY $CURRENT_VITALITY $VITALITY "The monster attacks you"
                 sleep $SPEED
-                HIT=$((RANDOM % 100))
+                HIT=$((RANDOM % 35))
                 if [ $HIT -gt $DEXTERITY ]; then
                     fight_status $CURRENT_MONSTER_VITALITY $MONSTER_VITALITY $CURRENT_VITALITY $VITALITY "It hits you"
                     CURRENT_VITALITY=$((CURRENT_VITALITY-1))
