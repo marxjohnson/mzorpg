@@ -263,7 +263,7 @@ function query {
 function create_db {
     query <<EOF
          CREATE TABLE battles (
-             id INTEGER PRIMARY KEY,
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
              agressor_id INTEGER NOT NULL,
 	     defender_id INTEGER,
              confirmed INTEGER
@@ -364,30 +364,40 @@ function pick_a_fight {
     BATTLE_ID=`find_battle_offer $LEVEL`
     if [ -z $BATTLE_ID ]
     then
+        #echo "No battle found for level ${LEVEL}" >> "/tmp/mzorpg.${NAME}.log"
         BATTLE_ID=`create_battle_offer $ID`
+        #echo "Created battle ID ${BATTLE_ID} for ${LEVEL}" >> "/tmp/mzorpg.${NAME}.log"
 	while [ -z $BATTLE ]
 	do
+            #echo "Waiting for ${BATTLE_ID} to be accepted" >> "/tmp/mzorpg.${NAME}.log"
             sleep 5
             BATTLE=`check_battle_offer $BATTLE_ID`
 	done
+    	#echo "Battle ${BATTLE_ID} accepted. confirming." >> "/tmp/mzorpg.${NAME}.log"
+	#echo "${BATTLE}" >> "/tmp/mzorpg.${NAME}.log"
 	confirm_battle_offer $BATTLE_ID
     else
+        #echo "Found battle ID ${BATTLE_ID} for level ${LEVEL}" >> "/tmp/mzorpg.${NAME}.log"
         accept_battle_offer $BATTLE_ID $ID
 	TIMEOUT=5
 	while [[ $TIMEOUT != 0 ]]
 	do
+            #echo "Waiting for confirmation of ${BATTLE_ID} ." >> "/tmp/mzorpg.${NAME}.log"
             sleep 5
             CONFIRMED=`check_battle_offer_confirmed $BATTLE_ID $ID`
 	    if [ ! -z $CONFIRMED ]
             then
 	        mkfifo "/tmp/mzorpg${BATTLE_ID}.battle"
+		#echo "Created FIFO for ${BATTLE_ID}" >> "/tmp/mzorpg.${NAME}.log"
                 BATTLE=`check_battle_offer $BATTLE_ID`
+	        #echo "${BATTLE}" >> "/tmp/mzorpg.${NAME}.log"
 		break
             fi
 	    TIMEOUT=$((TIMEOUT - 1))
 	done
         if [ -z $BATTLE ]
         then
+	    #echo "Timed out waiting for confirmation. Retrying." >> "/tmp/mzorpg.${NAME}.log"
 	    # The battle was never confirmed, try again.
 	    BATTLE=`pick_a_fight $ID`
 	fi
@@ -492,14 +502,18 @@ while true; do
         AGRESSOR=${BATTLE[1]}
         DEFENDER=${BATTLE[2]}
         PIPE="/tmp/mzorpg${BATTLE_ID}.battle"
+        #echo "Using FIFO ${PIPE}" >> "/tmp/mzorpg.${NAME}.log"
         if [ $AGRESSOR == $ID ]
         then
+	    LINE=
+            #echo "Agressor in fight ${BATTLE_ID}" >> "/tmp/mzorpg.${NAME}.log"
 	    sleep 5
             # Wait for defender's stats.
             while [ -z $LINE ]
             do
                 read LINE <$PIPE
             done
+            #echo "${LINE}" >> "/tmp/mzorpg.${NAME}.log"
             IFS='|' read -r -a DEFENDER <<< $LINE
             DEFENDER_NAME=${DEFENDER[0]}
             DEFENDER_VITALITY=${DEFENDER[1]}
@@ -581,17 +595,20 @@ Your score was $SCORE"
                 break;
             fi
         else
+            #echo "Defender in fight ${BATTLE_ID}" >> "/tmp/mzorpg.${NAME}.log"
             # Send stats and wait for futher messages.
-            echo "${NAME}|${VITALITY}|${DEXTERITY}" >$PIPE
+	    LINE="${NAME}|${VITALITY}|${DEXTERITY}"
+	    #echo $LINE >> "/tmp/mzorpg.${NAME}.log"
+            echo $LINE >$PIPE
             while true
             do
 		read LINE <$PIPE
 		if [ ! -z $LINE ]
 	        then
-		    echo $LINE >> "${NAME}.log"
+		    #echo $LINE >> "/tmp/mzorpg.${NAME}.log"
                     if [[ "$LINE" == "WIN" || "$LINE" == "LOSE" ]] 
                     then
-		        echo "FINAL LINE, BREAKING: $LINE" >> "${NAME}.log"
+		        #echo "FINAL LINE, BREAKING: $LINE" >> "/tmp/mzorpg.${NAME}.log"
                         break
 	            elif [ "$LINE" == "$EOM" ]
 		    then
