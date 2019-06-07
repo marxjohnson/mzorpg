@@ -146,6 +146,7 @@ cp "/bin/bash" .
 cp "/bin/sleep" .
 cp "/usr/bin/seq" .
 cp "/usr/bin/tput" .
+cp "/usr/bin/sqlite3" .
 cd ..
 
 
