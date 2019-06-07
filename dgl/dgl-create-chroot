@@ -149,6 +149,7 @@ cp "/usr/bin/tput" .
 cp "/usr/bin/sqlite3" .
 cd ..
 
+LIBS="$LIBS `findlibs /usr/bin/sqlite3`"
 
 cp "$CURDIR/../dgl/dgl_menu_main_anon.txt" .
 cp "$CURDIR/../dgl/dgl_menu_main_user.txt" .
