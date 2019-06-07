@@ -1,0 +1,18 @@
+ ## $SERVERID
+ ##
+ ## $VERSION - network console game launcher
+ ## Copyright (c) 2000-2010 The Dgamelaunch Team
+ ## See http://nethackwiki.com/wiki/dgamelaunch for more info
+ 
+ Welcome, traveller, to the Massively Zero-player Online RPG!
+ Create an account or log in to play.
+ 
+ Not logged in.
+
+ l) Login
+ r) Register new user
+ q) Quit
+
+
+
+ =>

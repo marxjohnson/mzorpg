@@ -1,0 +1,16 @@
+ ## $SERVERID
+ ##
+ ## $VERSION - network console game launcher
+ ## Copyright (c) 2000-2010 The Dgamelaunch Team
+ ## See http://nethackwiki.com/wiki/dgamelaunch for more info
+
+ Welcome, traveller, to the Massively Zero-player Online RPG!
+
+ Logged in as: $USERNAME
+
+ c) Change password
+ e) Change email address
+ p) Play MZORPG
+ q) Quit
+
+ =>

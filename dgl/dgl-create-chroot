@@ -146,8 +146,8 @@ cp "/usr/bin/tput" .
 cd ..
 
 
-cp "$CURDIR/examples/dgl_menu_main_anon.txt" .
-cp "$CURDIR/examples/dgl_menu_main_user.txt" .
+cp "$CURDIR/../dgl/dgl_menu_main_anon.txt" .
+cp "$CURDIR/../dgl/dgl_menu_main_user.txt" .
 cp "$CURDIR/examples/dgl_menu_watchmenu_help.txt" .
 cp "$CURDIR/examples/dgl-banner" .
 cp "$CURDIR/dgl-default-rcfile" "dgl-default-rcfile.mzorpg"
