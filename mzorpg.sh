@@ -13,6 +13,11 @@ COLS=`tput cols`
 LINES=`tput lines`
 WINDOW_WIDTH=100
 WINDOW_HEIGHT=30
+if [[ $COLS -lt $WINDOW_WIDTH || $LINES -lt $WINDOW_HEIGHT ]]
+then
+    echo "Your teminal must be at least 100x30 characters to run mzorpg"
+    exit 1
+fi
 if [ $((COLS % 2)) -eq 1 ]
 then
     WINDOW_WIDTH=$((WINDOW_WIDTH+1))
