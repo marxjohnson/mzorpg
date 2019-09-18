@@ -148,10 +148,12 @@ cp "/usr/bin/seq" .
 cp "/usr/bin/tput" .
 cp "/usr/bin/sqlite3" .
 cp "/usr/bin/mkfifo" .
+cp "/bin/rm" .
 cd ..
 
 LIBS="$LIBS `findlibs /usr/bin/sqlite3`"
 LIBS="$LIBS `findlibs /usr/bin/mkfifo`"
+LIBS="$LIBS `findlibs /bin/rm`"
 
 cp "$CURDIR/../dgl/dgl_menu_main_anon.txt" .
 cp "$CURDIR/../dgl/dgl_menu_main_user.txt" .
