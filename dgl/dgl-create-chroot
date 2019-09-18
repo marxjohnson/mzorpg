@@ -147,9 +147,11 @@ cp "/bin/sleep" .
 cp "/usr/bin/seq" .
 cp "/usr/bin/tput" .
 cp "/usr/bin/sqlite3" .
+cp "/usr/bin/mkfifo" .
 cd ..
 
 LIBS="$LIBS `findlibs /usr/bin/sqlite3`"
+LIBS="$LIBS `findlibs /usr/bin/mkfifo`"
 
 cp "$CURDIR/../dgl/dgl_menu_main_anon.txt" .
 cp "$CURDIR/../dgl/dgl_menu_main_user.txt" .
